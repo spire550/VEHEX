@@ -5,51 +5,62 @@ import User from "./../../../DB/models/user/User.model.js";
 import randomstring from "randomstring";
 import tokenModel from "../../../DB/models/token/Token.model.js";
 import sendEmailService from "../utils/sendEmails.js";
+
 export const registerUser = async (req, res, next) => {
   const { name, email, mobile, password } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return res
-      .status(400)
-      .json({ message: "User already exists with this email" });
+      return res.status(400).json({ message: 'User already exists with this email' });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = new User({
-    name,
-    email,
-    mobile,
-    password: hashedPassword,
+      name,
+      email,
+      mobile,
+      password: hashedPassword
   });
 
   await newUser.save();
 
-  res.status(201).json({ message: "User registered successfully" });
+  res.status(201).json({ message: 'User registered successfully' });
 };
 
 export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: "Invalid email or password" });
+  const isUser = await User.findOne({ email });
+  if (!isUser) {
+    return next(new Error("invalid email or password"));
+  }
+  const comparePassword = bcrypt.compareSync(password, isUser.password);
+  if (!comparePassword) {
+    return next(new Error("invalid email or password"));
   }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(400).json({ message: "Invalid email or password" });
-  }
-
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
+  const payload = {
+    role: isUser.role,
+  };
+  const token = jwt.sign(
+    { email, id: isUser._id },
+    process.env.JWT_SECRET
+    /* , {
+      expiresIn: "1d",
+    } */
+  );
+  await tokenModel.create({ token, user: isUser._id });
+  isUser.isDeleted = false;
+  await isUser.save();
+  return res.json({
+    success: true,
+    message: "you logged in successfully",
+    token,
+    payload,
   });
-
-  await tokenModel.create({ userId: user._id, token });
-
-  res.status(200).json({ message: "Login successful", token });
 };
+
 
 export const logout = async (req, res, next) => {
   const { token } = req.headers;
@@ -219,12 +230,7 @@ export const sendForgetCode = async (req, res, next) => {
         <tr>
             <td>
                 <table class="email-container">
-                    <tr>
-                        <td class="header">
-                            <img src="https://res.cloudinary.com/dtyqzch3s/image/upload/v1726590311/thcrcjruzdtmi2hu5lat.jpg" alt="Logo"> <!-- Replace with actual logo URL -->
-                            صقر المدينه لخدمات النقل
-                        </td>
-                    </tr>
+                  
                     <tr>
                         <td class="content">
                             <div class="code-header">
@@ -232,15 +238,6 @@ export const sendForgetCode = async (req, res, next) => {
                             </div>
                             <div class="code-box">
                                 <span id="code">${code}</span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="footer">
-                            <div class="social-icons">
-                                <a href="https://wa.me/+966565545424" target="_blank">
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="width: 24px; height: 24px; margin: 0 10px; vertical-align: middle;">
-                                </a>
                             </div>
                         </td>
                     </tr>
