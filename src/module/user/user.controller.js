@@ -251,9 +251,17 @@ export const sendForgetCode = async (req, res, next) => {
 `,
   });
 
-  if (!msgSent) return next(new Error("Email invalid"));
+  if (!msgSent) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send email",
+    });
+  }
 
-  return res.send("you can reset your password now");
+  return res.status(200).json({
+    success: true,
+    message: "You can reset your password now",
+  });
 };
 export const resetPassword = async (req, res, next) => {
   //check user
