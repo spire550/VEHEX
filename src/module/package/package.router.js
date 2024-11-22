@@ -2,7 +2,7 @@ import express from "express";
 import * as packageController from "./package.controller.js";
 import { asyncHandler } from "../utils/errorHandler.js";
 import auth from "../../middleware/auth.js";
-import { uploadFileCloud } from "../utils/multerCloud.js";
+import uploadFileCloud from "../utils/multerCloud.js";
 import allowedExtensions from "../utils/allowedExtention.js";
 
 const router = express.Router();
@@ -10,12 +10,14 @@ const router = express.Router();
 router.post(
   "/createPackage",
   auth,
+  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
   asyncHandler(packageController.createPackage)
 );
 router.get("/allPackages", asyncHandler(packageController.getPackages));
 router.put(
   "/updatePackage/:packageId",
   auth,
+  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
   asyncHandler(packageController.updatePackage)
 );
 router.delete(

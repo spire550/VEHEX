@@ -1,6 +1,7 @@
 import Package from "../../../DB/models/user/Package.model.js";
 import Car from "../../../DB/models/user/Car.model.js";
 import Product from "../../../DB/models/user/Product.model.js";
+import cloudinaryConnection from "../utils/cloudinary.js";
 
 export const createPackage = async (req, res, next) => {
   const { name, description, productIds, price, mileage } = req.body;
@@ -11,6 +12,15 @@ export const createPackage = async (req, res, next) => {
       .status(403)
       .json({ message: "You are not authorized to create packages." });
   }
+  if (!req.file) {
+    return next({ cause: 400, message: "Logo image is required" });
+  }
+
+  // Upload the logo to Cloudinary
+  const { secure_url: logoUrl, public_id: logoPublicId } =
+    await cloudinaryConnection().uploader.upload(req.file.path, {
+      folder: `packages`,
+    });
 
   // Validate required fields
   if (
@@ -42,6 +52,7 @@ export const createPackage = async (req, res, next) => {
     products: productIds,
     price, // Save the provided price
     mileage,
+    logo: { url: logoUrl, publicId: logoPublicId }, // Add logo details if needed
   });
 
   res.status(201).json({
@@ -61,44 +72,67 @@ export const getPackages = async (req, res) => {
 };
 
 export const updatePackage = async (req, res) => {
-  const { packageId } = req.params;
-  const { name, price, products, description, mileage } = req.body;
-  // Ensure the user is an admin
-  if (!req.user || req.user.role !== "admin") {
-    return res
-      .status(403)
-      .json({ message: "You are not authorized to create packages." });
-  }
-
-  const packageToUpdate = await Package.findById(packageId);
-  if (!packageToUpdate) {
-    return res.status(404).json({ message: "Package not found." });
-  }
-
-  // Update fields if provided
-  if (name) {
-    packageToUpdate.name = name; // Update package name
-  }
-  if (price) {
-    packageToUpdate.price = price; // Update package price
-  }
-  if (products && Array.isArray(products)) {
-    packageToUpdate.products = products; // Update associated products
-  }
-  if (description) {
-    packageToUpdate.description = description; // Update description
-  }
-  if (mileage) {
-    packageToUpdate.mileage = mileage; // Update mileage
-  }
-
-  await packageToUpdate.save();
-
-  res.status(200).json({
-    message: "Package updated successfully.",
-    package: packageToUpdate,
-  });
-};
+    const { packageId } = req.params;
+    const { name, price, products, description, mileage } = req.body;
+  
+    // Ensure the user is an admin
+    if (!req.user || req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to update packages." });
+    }
+  
+    const packageToUpdate = await Package.findById(packageId);
+    if (!packageToUpdate) {
+      return res.status(404).json({ message: "Package not found." });
+    }
+  
+    // If a new logo file is provided
+    if (req.file) {
+      // Remove the old logo from Cloudinary if it exists
+      if (packageToUpdate.logo && packageToUpdate.logo.publicId) {
+        await cloudinaryConnection().uploader.destroy(packageToUpdate.logo.publicId);
+      }
+  
+      // Upload the new logo to Cloudinary
+      const { secure_url: newLogoUrl, public_id: newLogoPublicId } =
+        await cloudinaryConnection().uploader.upload(req.file.path, {
+          folder: `packages`,
+        });
+  
+      // Update logo details
+      packageToUpdate.logo = {
+        url: newLogoUrl,
+        publicId: newLogoPublicId,
+      };
+    }
+  
+    // Update other fields if provided
+    if (name) {
+      packageToUpdate.name = name; // Update package name
+    }
+    if (price) {
+      packageToUpdate.price = price; // Update package price
+    }
+    if (products && Array.isArray(products)) {
+      packageToUpdate.products = products; // Update associated products
+    }
+    if (description) {
+      packageToUpdate.description = description; // Update description
+    }
+    if (mileage) {
+      packageToUpdate.mileage = mileage; // Update mileage
+    }
+  
+    // Save the updated package
+    await packageToUpdate.save();
+  
+    res.status(200).json({
+      message: "Package updated successfully.",
+      package: packageToUpdate,
+    });
+  };
+  
 
 export const deletePackage = async (req, res) => {
   const { packageId } = req.params;
