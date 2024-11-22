@@ -27,17 +27,22 @@ router.get(
   asyncHandler(productsController.getProductsForUser)
 );
 router.get(
-    "/selectedCar/:carId",
-    auth,
-    asyncHandler(productsController.getProductsForSelectedCar)
-  );
+  "/selectedCar/:carId",
+  auth,
+  asyncHandler(productsController.getProductsForSelectedCar)
+);
 router.get(
   "/prouctsByCategory/:categoryId",
   asyncHandler(productsController.getProductsByCategory)
 );
 
 router.delete(
-  "/deleteProduct/:productId",auth,
+  "/deleteProduct/:productId",
+  auth,
   asyncHandler(productsController.deleteProduct)
+);
+router.get(
+  "/getCarById/:productId",
+  asyncHandler(productsController.getProductById)
 );
 export default router;

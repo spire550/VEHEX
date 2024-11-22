@@ -3,199 +3,284 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Order Form</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Secure Payment</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        background-color: #f7f7f7;
+        padding: 40px;
+      }
+
+      .payment-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #fafafa;
+        transition: all 0.3s ease;
+      }
+
+      .form-group input:focus {
+        border-color: #4caf50;
+        outline: none;
+      }
+
+      .form-group input[type="text"],
+      .form-group input[type="tel"] {
+        text-transform: capitalize;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #333;
+        display: block;
+      }
+
+      .form-group .card-info {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .form-group .card-info input {
+        width: 48%;
+      }
+
+      button {
+        width: 100%;
+        padding: 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #218838;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .loading img {
+        width: 30px;
+      }
+    </style>
   </head>
   <body>
-    <div class="container mx-auto p-8">
-      <h2 class="text-2xl font-semibold mb-4">Place Your Order</h2>
-      <form id="orderForm" class="space-y-4">
-        <div>
-          <label for="fullname" class="block">Full Name</label>
-          <input type="text" id="fullname" class="border p-2 w-full" required />
-        </div>
-
-        <div>
-          <label for="phone" class="block">Phone Number</label>
-          <input type="tel" id="phone" class="border p-2 w-full" required />
-        </div>
-
-        <div>
-          <label for="shippingAddress" class="block">Shipping Address</label>
+    <div class="payment-container">
+      <h2>Complete Your Payment</h2>
+      <form id="payment-form">
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="fullname">Full Name</label>
           <input
             type="text"
-            id="shippingAddress"
-            class="border p-2 w-full"
+            id="fullname"
+            name="fullname"
+            placeholder="Enter full name"
             required
           />
         </div>
 
-        <div>
-          <label for="paymentMethod" class="block">Payment Method</label>
-          <select id="paymentMethod" class="border p-2 w-full" required>
-            <option value="creditcard">Credit Card</option>
-            <option value="sadad">Sadad</option>
-          </select>
+        <!-- Phone Number -->
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="Enter phone number"
+            required
+          />
         </div>
 
-        <div id="creditCardDetails" class="space-y-4 hidden">
+        <!-- Shipping Address -->
+        <div class="form-group">
+          <label for="shippingAddress">Shipping Address</label>
+          <input
+            type="text"
+            id="shippingAddress"
+            name="shippingAddress"
+            placeholder="Enter shipping address"
+            required
+          />
+        </div>
+
+        <!-- Cardholder's Name -->
+        <div class="form-group">
+          <label for="cardName">Cardholder's Name</label>
+          <input
+            type="text"
+            id="cardName"
+            name="cardName"
+            placeholder="Cardholder's Name"
+            required
+          />
+        </div>
+
+        <!-- Card Info -->
+        <div class="form-group card-info">
           <div>
-            <label for="cardNumber" class="block">Card Number</label>
+            <label for="cardNumber">Card Number</label>
             <input
               type="text"
               id="cardNumber"
-              class="border p-2 w-full"
+              name="cardNumber"
+              placeholder="Card Number"
+              maxlength="19"
               required
             />
           </div>
           <div>
-            <label for="cardName" class="block">Cardholder Name</label>
+            <label for="expiryDate">Expiry Date (MM/YY)</label>
             <input
               type="text"
-              id="cardName"
-              class="border p-2 w-full"
-              required
-            />
-          </div>
-          <div>
-            <label for="cardExpiration" class="block">Expiration Date</label>
-            <input
-              type="text"
-              id="cardExpiration"
-              class="border p-2 w-full"
+              id="expiryDate"
+              name="expiryDate"
               placeholder="MM/YY"
-              required
-            />
-          </div>
-          <div>
-            <label for="cardCvc" class="block">CVC</label>
-            <input
-              type="text"
-              id="cardCvc"
-              class="border p-2 w-full"
+              maxlength="5"
               required
             />
           </div>
         </div>
 
-        <button
-          type="submit"
-          id="submitBtn"
-          class="bg-blue-500 text-white p-2 w-full"
-        >
-          Place Order
-        </button>
-        <p id="loadingMessage" class="hidden text-yellow-600">
-          Processing your order...
-        </p>
-        <p id="errorMessage" class="hidden text-red-600"></p>
+        <div class="form-group card-info">
+          <div>
+            <label for="cvc">CVC</label>
+            <input
+              type="text"
+              id="cvc"
+              name="cvc"
+              placeholder="CVC"
+              maxlength="3"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Hidden Token Field (for the payment method) -->
+        <input type="hidden" id="paymentToken" name="paymentToken" />
+
+        <!-- Submit -->
+        <button type="submit" id="submit-button">Pay Now</button>
       </form>
+
+      <div class="loading">
+        <img src="https://i.gifer.com/4V0b.gif" alt="Loading..." />
+        <p>Processing payment...</p>
+      </div>
     </div>
 
     <script>
-      // Handle the form submission
-      document
-        .getElementById("orderForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
+      const paymentForm = document.getElementById("payment-form");
+      const submitButton = document.getElementById("submit-button");
+      const loading = document.querySelector(".loading");
 
-          // Show loading message
-          document.getElementById("loadingMessage").classList.remove("hidden");
-          document.getElementById("errorMessage").classList.add("hidden");
+      // Get the stored JWT token (this will depend on your authentication method)
+      const token = localStorage.getItem("jwtToken"); // For example, retrieving it from localStorage
 
-          const fullname = document.getElementById("fullname").value;
-          const phone = document.getElementById("phone").value;
-          const shippingAddress =
-            document.getElementById("shippingAddress").value;
-          const paymentMethod = document.getElementById("paymentMethod").value;
+      paymentForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-          let cardDetails = {};
-          if (paymentMethod === "creditcard") {
-            cardDetails = {
-              name: document.getElementById("cardName").value,
-              number: document.getElementById("cardNumber").value,
-              month: document
-                .getElementById("cardExpiration")
-                .value.split("/")[0], // Extract month
-              year: document
-                .getElementById("cardExpiration")
-                .value.split("/")[1], // Extract year
-              cvc: document.getElementById("cardCvc").value,
-            };
-          }
+        // Show loading indicator
+        loading.style.display = "block";
+        submitButton.disabled = true;
 
-          const orderData = {
-            fullname,
-            phone,
-            shippingAddress,
-            paymentMethod,
-            cardDetails,
-          };
+        // Collect user input
+        const fullname = document.getElementById("fullname").value;
+        const phone = document.getElementById("phone").value;
+        const shippingAddress =
+          document.getElementById("shippingAddress").value;
+        const cardName = document.getElementById("cardName").value;
+        const cardNumber = document.getElementById("cardNumber").value;
+        const expiryDate = document.getElementById("expiryDate").value;
+        const cvc = document.getElementById("cvc").value;
 
-          // Get the JWT token from localStorage or wherever it's stored
-          const token = localStorage.getItem("jwtToken");
+        // Prepare data to send to the backend
+        const paymentData = {
+          fullname,
+          phone,
+          shippingAddress,
+          paymentMethod: "creditcard",
+          cardDetails: {
+            name: cardName,
+            number: cardNumber,
+            month: expiryDate.split("/")[0],
+            year: expiryDate.split("/")[1],
+            cvc: cvc,
+          },
+        };
 
-          try {
-            const response = await fetch(
-              "http://127.0.0.1:3000/order/addOrder",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  token: token,
-                },
-                body: JSON.stringify(orderData),
-              }
-            );
+        try {
+          const response = await fetch("http://127.0.0.1:3000/order/addOrder", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              token: token, // Include the JWT token in the Authorization header
+            },
+            body: JSON.stringify(paymentData),
+          });
 
-            const data = await response.json();
+          const data = await response.json();
 
-            if (response.ok) {
-              console.log("Order created:", data);
+          // Log the response for debugging
+          console.log("Backend response:", data);
 
-              // Check if the response contains a transaction URL
-              if (data.payment && data.payment.source.transaction_url) {
-                // Redirect the user to the payment page to complete the payment
-                window.location.href = data.payment.source.transaction_url;
-              } else {
-                alert(
-                  "Order successfully placed! No transaction URL received."
-                );
-              }
-            } else {
-              console.error("Error:", data.message);
-              document.getElementById("errorMessage").textContent =
-                data.message;
-              document
-                .getElementById("errorMessage")
-                .classList.remove("hidden");
-            }
-          } catch (error) {
-            console.error("Error:", error);
-            document.getElementById("errorMessage").textContent =
-              "An error occurred. Please try again.";
-            document.getElementById("errorMessage").classList.remove("hidden");
-          } finally {
-            // Hide the loading message
-            document.getElementById("loadingMessage").classList.add("hidden");
-          }
-        });
-
-      // Toggle card details visibility based on payment method selection
-      document
-        .getElementById("paymentMethod")
-        .addEventListener("change", () => {
-          const paymentMethod = document.getElementById("paymentMethod").value;
-          if (paymentMethod === "creditcard") {
-            document
-              .getElementById("creditCardDetails")
-              .classList.remove("hidden");
+          // Check if the backend returns a payment URL for redirection
+          if (response.ok && data.payment?.source?.transaction_url) {
+            window.location.href = data.payment.source.transaction_url;
           } else {
-            document
-              .getElementById("creditCardDetails")
-              .classList.add("hidden");
+            // Show error if no payment URL is provided
+            alert("Error: " + data.message || "An unknown error occurred.");
           }
-        });
+        } catch (error) {
+          // Log error if the fetch request fails
+          console.error("Error:", error);
+          alert("Payment request failed. Please try again.");
+        } finally {
+          loading.style.display = "none";
+          submitButton.disabled = false;
+        }
+      });
     </script>
   </body>
 </html>

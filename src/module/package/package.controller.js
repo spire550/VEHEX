@@ -206,3 +206,16 @@ export const assignPackageToCar = async (req, res) => {
     package: selectedPackage,
   });
 };
+
+export const getPackageById = async (req, res) => {
+    const { packageId } = req.params;
+  
+    // Find the car by ID
+    const packagee = await Package.findById(packageId);
+  
+    if (!packagee) {
+      return res.status(404).json({ message: "package not found." });
+    }
+  
+    res.status(200).json({ packagee });
+  };

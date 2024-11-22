@@ -35,4 +35,8 @@ router.get(
   asyncHandler(packageController.getPackagesForUserCars)
 ); // Get all packages for user's cars under warranty
 
+router.get(
+  "/getpackageById/:packageId",
+  asyncHandler(packageController.getPackageById)
+);
 export default router;

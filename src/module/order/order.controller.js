@@ -3,108 +3,129 @@ import Cart from "../../../DB/models/user/Cart.model.js";
 import Order from "../../../DB/models/user/Order.model.js";
 
 export const createOrderFromCart = async (req, res, next) => {
-  const userId = req.user._id;
-
-  // Find the user's cart
-  const cart = await Cart.findOne({ userId }).populate("items.productId");
-  if (!cart || cart.items.length === 0) {
-    return res.status(400).json({ message: "Cart is empty." });
-  }
-
-  const { fullname, phone, shippingAddress, paymentMethod, cardDetails } =
-    req.body;
-
-  // Ensure all required fields are provided
-  if (!fullname || !phone || !shippingAddress) {
-    return res.status(400).json({
-      message: "Full name, phone number, and shipping address are required.",
+    const userId = req.user._id;
+  
+    // Find the user's cart
+    const cart = await Cart.findOne({ userId }).populate("items.productId");
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty." });
+    }
+  
+    const { fullname, phone, shippingAddress, paymentMethod, cardDetails } = req.body;
+  
+    // Ensure all required fields are provided
+    if (!fullname || !phone || !shippingAddress) {
+      return res.status(400).json({
+        message: "Full name, phone number, and shipping address are required.",
+      });
+    }
+  
+    // Ensure paymentMethod is 'creditcard' and cardDetails are provided
+    if (paymentMethod !== "creditcard") {
+      return res.status(400).json({ message: "Only credit card payments are supported." });
+    }
+  
+    if (!cardDetails || !cardDetails.name || !cardDetails.number || !cardDetails.cvc) {
+      return res.status(400).json({
+        message: "Incomplete credit card details provided.",
+      });
+    }
+  
+    // Validate expiration month/year
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    if (
+      !cardDetails.month ||
+      !cardDetails.year ||
+      cardDetails.month < 1 ||
+      cardDetails.month > 12 ||
+      cardDetails.year < currentYear ||
+      (cardDetails.year == currentYear && cardDetails.month < currentMonth)
+    ) {
+      return res.status(400).json({ message: "Invalid card expiration date." });
+    }
+  
+    // Calculate total price
+    const totalPrice = cart.items.reduce(
+      (total, item) => total + item.quantity * item.price,
+      0
+    );
+  
+    // Extract items from cart
+    const items = cart.items.map((item) => ({
+      productId: item.productId._id,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+  
+    // Create a new order with default shippingStatus ('processing')
+    const order = await Order.create({
+      userId,
+      fullname,
+      phone,
+      shippingAddress,
+      items,
+      totalPrice,
+      paymentMethod,
+      shippingStatus: "processing", // Default value
     });
-  }
-
-  // Ensure card details are provided for credit card payment
-  if (paymentMethod !== "creditcard" || !cardDetails) {
-    return res.status(400).json({
-      message: "Card details are required for credit card payments.",
-    });
-  }
-
-  // Calculate total price
-  const totalPrice = cart.items.reduce(
-    (total, item) => total + item.quantity * item.price,
-    0
-  );
-
-  // Extract items from cart
-  const items = cart.items.map((item) => ({
-    productId: item.productId._id,
-    quantity: item.quantity,
-    price: item.price,
-  }));
-
-  // Create a new order with default shippingStatus ('processing')
-  const order = await Order.create({
-    userId,
-    fullname,
-    phone,
-    shippingAddress,
-    items,
-    totalPrice,
-    paymentMethod,
-    shippingStatus: "processing", // Default value
-  });
-
-  // Clear the cart
-  cart.items = [];
-  await cart.save();
-
-  // Generate Moyasar payment request for credit card
-  const paymentPayload = {
-    amount: totalPrice * 100, // Amount in halalas
-    currency: "SAR",
-    source: {
-      type: "creditcard",
-      name: cardDetails.name,
-      number: cardDetails.number,
-      cvc: cardDetails.cvc,
-      month: cardDetails.month,
-      year: cardDetails.year,
-    },
-    callback_url: `${process.env.BASE_URL}/api/webhook/moyasar`,
-    description: `Order payment for ${order._id}`,
-  };
-
-  // Send request to Moyasar API
-  const response = await axios
-    .post("https://api.moyasar.com/v1/payments", paymentPayload, {
-      auth: {
-        username: process.env.MOYASAR_API_KEY,
-        password: "", // Empty password for Moyasar
+  
+    // Clear the cart
+    cart.items = [];
+    await cart.save();
+  
+    // Generate Moyasar payment request for credit card
+    const paymentPayload = {
+      amount: totalPrice * 100, // Amount in halalas
+      currency: "SAR",
+      source: {
+        type: "creditcard",
+        name: cardDetails.name,
+        number: cardDetails.number,
+        cvc: cardDetails.cvc,
+        month: cardDetails.month,
+        year: cardDetails.year,
       },
-    })
-    .catch((error) => {
+      callback_url: `${process.env.BASE_URL}/api/webhook/moyasar`,
+      description: `Order payment for ${order._id}`,
+    };
+  
+    try {
+      // Send request to Moyasar API
+      const response = await axios.post(
+        "https://api.moyasar.com/v1/payments",
+        paymentPayload,
+        {
+          auth: {
+            username: process.env.MOYASAR_API_KEY,
+            password: "", // Empty password for Moyasar
+          },
+        }
+      );
+  
+      const { id: invoiceId, status, source } = response.data;
+  
+      // Update the order with payment details
+      order.invoiceId = invoiceId;
+      order.paymentStatus = status;
+      await order.save();
+  
+      // Send success response
+      return res.status(200).json({
+        message: "Order created and payment initialized.",
+        order,
+        payment: { status, source },
+      });
+    } catch (error) {
       console.error(
-        "Error creating Moyasar payment:",
+        `Error creating payment for Order ID: ${order._id}:`,
         error.response?.data || error.message
       );
-      return res
-        .status(500)
-        .json({ message: "Payment initialization failed." });
-    });
-
-  const { id: invoiceId, status, source } = response.data;
-
-  // Update the order with payment details
-  order.invoiceId = invoiceId;
-  order.paymentStatus = status;
-  await order.save();
-
-  // Send success response
-  res.status(200).json({
-    message: "Order created and payment initialized.",
-    order,
-    payment: { status, source },
-  });
-};
+      return next(new Error("Payment initialization failed."));
+    }
+  };
+  
+  
 
 export const moyasarWebhook = async (req, res) => {
   console.log(
