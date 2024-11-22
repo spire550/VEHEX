@@ -1,4 +1,6 @@
 import mongoose, { Schema, Types } from "mongoose";
+import { systemRoles } from "../../../src/module/utils/system-roles.js";
+
 const userSchema = new Schema(
   {
     name: {
@@ -29,6 +31,11 @@ const userSchema = new Schema(
     forgetCode: {
       type: String,
     },
+    role: {
+        type: String,
+        enum: [systemRoles.USER, systemRoles.ADMIN, systemRoles.SUPER_ADMIN],
+        default: systemRoles.USER,
+      },
   },
 
   {

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div class="container mx-auto p-8">
+      <h2 class="text-2xl font-semibold mb-4">Place Your Order</h2>
+      <form id="orderForm" class="space-y-4">
+        <div>
+          <label for="fullname" class="block">Full Name</label>
+          <input type="text" id="fullname" class="border p-2 w-full" required />
+        </div>
+
+        <div>
+          <label for="phone" class="block">Phone Number</label>
+          <input type="tel" id="phone" class="border p-2 w-full" required />
+        </div>
+
+        <div>
+          <label for="shippingAddress" class="block">Shipping Address</label>
+          <input
+            type="text"
+            id="shippingAddress"
+            class="border p-2 w-full"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="paymentMethod" class="block">Payment Method</label>
+          <select id="paymentMethod" class="border p-2 w-full" required>
+            <option value="creditcard">Credit Card</option>
+            <option value="sadad">Sadad</option>
+          </select>
+        </div>
+
+        <div id="creditCardDetails" class="space-y-4 hidden">
+          <div>
+            <label for="cardNumber" class="block">Card Number</label>
+            <input
+              type="text"
+              id="cardNumber"
+              class="border p-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label for="cardName" class="block">Cardholder Name</label>
+            <input
+              type="text"
+              id="cardName"
+              class="border p-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label for="cardExpiration" class="block">Expiration Date</label>
+            <input
+              type="text"
+              id="cardExpiration"
+              class="border p-2 w-full"
+              placeholder="MM/YY"
+              required
+            />
+          </div>
+          <div>
+            <label for="cardCvc" class="block">CVC</label>
+            <input
+              type="text"
+              id="cardCvc"
+              class="border p-2 w-full"
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="submitBtn"
+          class="bg-blue-500 text-white p-2 w-full"
+        >
+          Place Order
+        </button>
+        <p id="loadingMessage" class="hidden text-yellow-600">
+          Processing your order...
+        </p>
+        <p id="errorMessage" class="hidden text-red-600"></p>
+      </form>
+    </div>
+
+    <script>
+      // Handle the form submission
+      document
+        .getElementById("orderForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          // Show loading message
+          document.getElementById("loadingMessage").classList.remove("hidden");
+          document.getElementById("errorMessage").classList.add("hidden");
+
+          const fullname = document.getElementById("fullname").value;
+          const phone = document.getElementById("phone").value;
+          const shippingAddress =
+            document.getElementById("shippingAddress").value;
+          const paymentMethod = document.getElementById("paymentMethod").value;
+
+          let cardDetails = {};
+          if (paymentMethod === "creditcard") {
+            cardDetails = {
+              name: document.getElementById("cardName").value,
+              number: document.getElementById("cardNumber").value,
+              month: document
+                .getElementById("cardExpiration")
+                .value.split("/")[0], // Extract month
+              year: document
+                .getElementById("cardExpiration")
+                .value.split("/")[1], // Extract year
+              cvc: document.getElementById("cardCvc").value,
+            };
+          }
+
+          const orderData = {
+            fullname,
+            phone,
+            shippingAddress,
+            paymentMethod,
+            cardDetails,
+          };
+
+          // Get the JWT token from localStorage or wherever it's stored
+          const token = localStorage.getItem("jwtToken");
+
+          try {
+            const response = await fetch(
+              "http://127.0.0.1:3000/order/addOrder",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  token: token,
+                },
+                body: JSON.stringify(orderData),
+              }
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+              console.log("Order created:", data);
+
+              // Check if the response contains a transaction URL
+              if (data.payment && data.payment.source.transaction_url) {
+                // Redirect the user to the payment page to complete the payment
+                window.location.href = data.payment.source.transaction_url;
+              } else {
+                alert(
+                  "Order successfully placed! No transaction URL received."
+                );
+              }
+            } else {
+              console.error("Error:", data.message);
+              document.getElementById("errorMessage").textContent =
+                data.message;
+              document
+                .getElementById("errorMessage")
+                .classList.remove("hidden");
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            document.getElementById("errorMessage").textContent =
+              "An error occurred. Please try again.";
+            document.getElementById("errorMessage").classList.remove("hidden");
+          } finally {
+            // Hide the loading message
+            document.getElementById("loadingMessage").classList.add("hidden");
+          }
+        });
+
+      // Toggle card details visibility based on payment method selection
+      document
+        .getElementById("paymentMethod")
+        .addEventListener("change", () => {
+          const paymentMethod = document.getElementById("paymentMethod").value;
+          if (paymentMethod === "creditcard") {
+            document
+              .getElementById("creditCardDetails")
+              .classList.remove("hidden");
+          } else {
+            document
+              .getElementById("creditCardDetails")
+              .classList.add("hidden");
+          }
+        });
+    </script>
+  </body>
+</html>

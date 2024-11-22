@@ -11,21 +11,23 @@ export const registerUser = async (req, res, next) => {
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    return res
+      .status(400)
+      .json({ message: "User already exists with this email" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = new User({
-      name,
-      email,
-      mobile,
-      password: hashedPassword
+    name,
+    email,
+    mobile,
+    password: hashedPassword,
   });
 
   await newUser.save();
 
-  res.status(201).json({ message: 'User registered successfully' });
+  res.status(201).json({ message: "User registered successfully" });
 };
 
 export const loginUser = async (req, res, next) => {
@@ -60,7 +62,6 @@ export const loginUser = async (req, res, next) => {
     payload,
   });
 };
-
 
 export const logout = async (req, res, next) => {
   const { token } = req.headers;
@@ -251,9 +252,17 @@ export const sendForgetCode = async (req, res, next) => {
 `,
   });
 
-  if (!msgSent) return next(new Error("Email invalid"));
+  if (!msgSent) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send email",
+    });
+  }
 
-  return res.send("you can reset your password now");
+  return res.status(200).json({
+    success: true,
+    message: "You can reset your password now",
+  });
 };
 export const resetPassword = async (req, res, next) => {
   //check user
@@ -282,4 +291,27 @@ export const resetPassword = async (req, res, next) => {
   });
 
   return res.json({ success: true, message: "Try to login now" });
+};
+
+
+export const deleteUser = async (req, res, next) => {
+  const { userId } = req.params;
+
+  // Ensure user is an admin
+  if (!req.user || req.user.role !== "admin") {
+    return next(new Error("You are not authorized to delete users."));
+  }
+
+  // Find and delete the user
+  const deletedUser = await User.findByIdAndDelete(userId);
+
+  // If user is not found
+  if (!deletedUser) {
+    return next(new Error("User not found."));
+  }
+
+  res.status(200).json({
+    message: "User deleted successfully",
+    user: deletedUser,
+  });
 };

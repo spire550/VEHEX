@@ -3,6 +3,12 @@ import dotenv from "dotenv";
 import connection from "./DB/models/connection.js";
 import userRouter from "./src/module/user/user.router.js";
 import carRouter from "./src/module/car/car.router.js";
+import productRouter from "./src/module/product/product.router.js";
+import categoryRouter from "./src/module/category/category.router.js";
+import cartRouter from "./src/module/cart/cart.router.js";
+import packageRouter from "./src/module/package/package.router.js";
+import orderRouter from "./src/module/order/order.router.js";
+
 
 dotenv.config();
 const app = express();
@@ -23,7 +29,11 @@ const port = process.env.PORT;
 app.use(express.json());
 app.use("/user", userRouter);
 app.use("/car", carRouter);
-
+app.use("/product", productRouter);
+app.use("/category", categoryRouter);
+app.use("/cart", cartRouter);
+app.use("/package", packageRouter);
+app.use("/order", orderRouter);
 
 app.use((err, req, res, next) => {
   return res.json({ message: "Error", err: err.message, stack: err.stack });

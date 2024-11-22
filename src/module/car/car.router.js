@@ -2,22 +2,39 @@ import express from "express";
 import * as carController from "./car.controller.js";
 import auth from "../../middleware/auth.js";
 import { asyncHandler } from "../utils/errorHandler.js";
-
-// Assuming you have an authentication middleware
+import uploadFileCloud from "../utils/multerCloud.js";
+import allowedExtensions from "../utils/allowedExtention.js";
 
 const router = express.Router();
 
-// Route to register car by engine number or car details
 router.post(
-  "/registerWithData",
+  "/registerUserCar",
   auth,
-  asyncHandler(carController.registerCarByCarDetails)
+  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
+  asyncHandler(carController.registerCar)
 );
-router.post(
+/* router.post(
   "/registerWithCarNumber",
   auth,
-  asyncHandler(carController.registerCarByEngineNumber)
+  asyncHandler(carController.registerCar)
+); */
+router.get("/userCars", auth, asyncHandler(carController.getAllUserCars));
+router.put(
+  "/updateUserCar/:carId",
+  auth,
+  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
+  asyncHandler(carController.updateCar)
 );
-router.get("/userCars", auth, asyncHandler(carController.getAllCars));
-
+router.delete(
+  "/deleteUserCarForUser/:carId",
+  auth,
+  asyncHandler(carController.deleteCarForUser)
+);
+router.delete(
+  "/deleteCarAdmin/:carId",
+  auth,
+  asyncHandler(carController.deleteCarAdmin)
+);
+router.get("/allCars", asyncHandler(carController.getAllCars));
+router.get("/car/:carId", asyncHandler(carController.getCarById));
 export default router;
