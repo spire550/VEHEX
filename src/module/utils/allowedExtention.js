@@ -1,5 +1,5 @@
 const allowedExtensions = {
-    image: ["jpg", "jpeg", "png","web"],
+    image: ["jpg", "jpeg", "png","webp"],
     video: ["mp4", "avi", "mkv"],
     audio: ["mp3", "wav"],
     document: ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt"],
