@@ -8,10 +8,12 @@ import categoryRouter from "./src/module/category/category.router.js";
 import cartRouter from "./src/module/cart/cart.router.js";
 import packageRouter from "./src/module/package/package.router.js";
 import orderRouter from "./src/module/order/order.router.js";
-
+import bodyParser from 'body-parser';
 
 dotenv.config();
 const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 const whitelist = [];
 
 app.use((req, res, next) => {

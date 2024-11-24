@@ -1,13 +1,7 @@
 import multer, { diskStorage } from "multer";
 import allowedExtensions from "./allowedExtention.js";
 
-/* export function uploadFileCloud() {
-  const storage = diskStorage({});
-  const multerUpload = multer({ storage });
 
-  return multerUpload;
-}
- */
 export const uploadFileCloud = ({
   extensions = allowedExtensions.image,
 }) => {
