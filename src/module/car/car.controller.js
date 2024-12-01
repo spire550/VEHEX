@@ -136,23 +136,29 @@ export const getAllUserCars = async (req, res, next) => {
   });
 };
 
-export const updateCar = async (req, res) => {
-  const { carId } = req.params;
-  const { engineNumber, carDetails, mileage } = req.body;
-  const userId = req.user._id; // Logged-in user
+export const updateCar = async (req, res, next) => {
+  try {
+    const { carId } = req.params;
+    const updates = req.body;
+    const userId = req.user._id;
 
-  // Fetch the car and ensure it belongs to the user
-  const car = await Car.findOne({ _id: carId, userId });
-  if (!car) {
-    return res.status(404).json({ message: "Car not found or unauthorized." });
-  }
+    // Find the car belonging to the logged-in user
+    const car = await Car.findOne({ _id: carId, userId });
 
-  // Handle updates for users who registered with engine number
-  if (car.engineNumber) {
-    if (engineNumber) {
+    if (!car) {
+      return res
+        .status(404)
+        .json({ message: "Car not found or unauthorized." });
+    }
+
+    // Check if the car was registered with an engine number
+    const isCarRegisteredWithEngineNumber = car.engineNumber !== null;
+
+    // Handle engine number updates
+    if (updates.engineNumber) {
       // Check if the new engine number is already used by this user for another car
       const existingCar = await Car.findOne({
-        engineNumber,
+        engineNumber: updates.engineNumber,
         userId,
       });
 
@@ -161,34 +167,60 @@ export const updateCar = async (req, res) => {
           .status(400)
           .json({ message: "You already have a car with this engine number." });
       }
-
-      // Update engine number
-      car.engineNumber = engineNumber;
-    } else {
-      return res
-        .status(400)
-        .json({ message: "Engine number is required for this car update." });
-    }
-  } else {
-    // Handle updates for users who registered with car details
-    if (carDetails) {
-      car.carDetails = { ...car.carDetails, ...carDetails }; // Merge updates with existing details
+      car.engineNumber = updates.engineNumber; // Update engine number
     }
 
-    if (mileage !== undefined) {
-      car.mileage = mileage; // Update mileage
+    // Handle car details updates (Only allow if the car doesn't have an engine number)
+    if (updates.carDetails) {
+      if (isCarRegisteredWithEngineNumber) {
+        // If the car already has an engine number, don't allow updating car details
+        return res
+          .status(400)
+          .json({
+            message:
+              "You cannot update car details for a car registered with engine number.",
+          });
+      }
+
+      // If no engine number exists, update car details (model, year, etc.)
+      car.carDetails = { ...car.carDetails, ...updates.carDetails };
     }
+
+    // Handle mileage updates (Can be updated at any time)
+    if (updates.mileage !== undefined) {
+      car.mileage = updates.mileage;
+    }
+
+    // Handle logo updates (Can be updated at any time)
+    if (req.files?.length) {
+      const logoImage = [];
+
+      // Parallel Cloudinary upload for new logo
+      const uploadPromises = req.files.map((file) =>
+        cloudinaryConnection().uploader.upload(file.path, {
+          folder: "cars/logos",
+        })
+      );
+      const uploadedLogos = await Promise.all(uploadPromises);
+
+      uploadedLogos.forEach(({ secure_url, public_id }) => {
+        logoImage.push({ secure_url, public_id });
+      });
+
+      car.logo = logoImage[0]; // Assuming only one logo is needed per car
+    }
+
+    // Save the updated car
+    const updatedCar = await car.save();
+
+    res.status(200).json({
+      message: "Car updated successfully.",
+      car: updatedCar,
+    });
+  } catch (error) {
+    next(error); // Pass the error to the global error handler
   }
-
-  // Save the updated car
-  const updatedCar = await car.save();
-
-  res.status(200).json({
-    message: "Car updated successfully.",
-    car: updatedCar,
-  });
 };
-
 
 export const deleteCarForUser = async (req, res) => {
   const { carId } = req.params;
