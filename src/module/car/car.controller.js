@@ -136,76 +136,59 @@ export const getAllUserCars = async (req, res, next) => {
   });
 };
 
-export const updateCar = async (req, res, next) => {
-  try {
-    const { carId } = req.params;
-    const updates = req.body;
-    const userId = req.user._id;
+export const updateCar = async (req, res) => {
+  const { carId } = req.params;
+  const { engineNumber, carDetails, mileage } = req.body;
+  const userId = req.user._id; // Logged-in user
 
-    // Find the car belonging to the logged-in user
-    const car = await Car.findOne({ _id: carId, userId });
+  // Fetch the car and ensure it belongs to the user
+  const car = await Car.findOne({ _id: carId, userId });
+  if (!car) {
+    return res.status(404).json({ message: "Car not found or unauthorized." });
+  }
 
-    if (!car) {
-      return res
-        .status(404)
-        .json({ message: "Car not found or unauthorized." });
-    }
-
-    // Handle engine number updates
-    if (updates.engineNumber) {
+  // Handle updates for users who registered with engine number
+  if (car.engineNumber) {
+    if (engineNumber) {
       // Check if the new engine number is already used by this user for another car
       const existingCar = await Car.findOne({
-        engineNumber: updates.engineNumber,
+        engineNumber,
         userId,
       });
+
       if (existingCar && existingCar._id.toString() !== carId) {
         return res
           .status(400)
           .json({ message: "You already have a car with this engine number." });
       }
-      car.engineNumber = updates.engineNumber;
+
+      // Update engine number
+      car.engineNumber = engineNumber;
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Engine number is required for this car update." });
+    }
+  } else {
+    // Handle updates for users who registered with car details
+    if (carDetails) {
+      car.carDetails = { ...car.carDetails, ...carDetails }; // Merge updates with existing details
     }
 
-    // Handle car details updates
-    if (updates.carDetails) {
-      car.carDetails = { ...car.carDetails, ...updates.carDetails };
+    if (mileage !== undefined) {
+      car.mileage = mileage; // Update mileage
     }
-
-    // Handle mileage updates
-    if (updates.mileage !== undefined) {
-      car.mileage = updates.mileage;
-    }
-
-    // Handle logo updates
-    if (req.files?.length) {
-      const logoImage = [];
-
-      // Parallel Cloudinary upload for new logo
-      const uploadPromises = req.files.map((file) =>
-        cloudinaryConnection().uploader.upload(file.path, {
-          folder: "cars/logos",
-        })
-      );
-      const uploadedLogos = await Promise.all(uploadPromises);
-
-      uploadedLogos.forEach(({ secure_url, public_id }) => {
-        logoImage.push({ secure_url, public_id });
-      });
-
-      car.logo = logoImage[0]; // Assuming only one logo is needed per car
-    }
-
-    // Save the updated car
-    const updatedCar = await car.save();
-
-    res.status(200).json({
-      message: "Car updated successfully.",
-      car: updatedCar,
-    });
-  } catch (error) {
-    next(error); // Pass the error to the global error handler
   }
+
+  // Save the updated car
+  const updatedCar = await car.save();
+
+  res.status(200).json({
+    message: "Car updated successfully.",
+    car: updatedCar,
+  });
 };
+
 
 export const deleteCarForUser = async (req, res) => {
   const { carId } = req.params;
@@ -271,35 +254,39 @@ export const getAllCars = async (req, res) => {
 };
 
 export const deleteCarAdmin = async (req, res) => {
-    const { carId } = req.params;
-  
-    // Check if the logged-in user is an admin (assuming you have this logic in your auth middleware)
-    const user = req.user; // Assuming user is added to the request after authentication
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: You do not have permission to delete this car." });
-    }
-  
-    // Find and delete the car
-    const deletedCar = await Car.findByIdAndDelete(carId);
-  
-    if (!deletedCar) {
-      return res.status(404).json({ message: "Car not found." });
-    }
-  
-    res.status(200).json({ message: "Car deleted successfully.", car: deletedCar });
-  };
-  
+  const { carId } = req.params;
 
-  export const getCarById = async (req, res) => {
-    const { carId } = req.params;
-  
-    // Find the car by ID
-    const car = await Car.findById(carId);
-  
-    if (!car) {
-      return res.status(404).json({ message: "Car not found." });
-    }
-  
-    res.status(200).json({ car });
-  };
-  
+  // Check if the logged-in user is an admin (assuming you have this logic in your auth middleware)
+  const user = req.user; // Assuming user is added to the request after authentication
+  if (!user || user.role !== "admin") {
+    return res
+      .status(403)
+      .json({
+        message: "Forbidden: You do not have permission to delete this car.",
+      });
+  }
+
+  // Find and delete the car
+  const deletedCar = await Car.findByIdAndDelete(carId);
+
+  if (!deletedCar) {
+    return res.status(404).json({ message: "Car not found." });
+  }
+
+  res
+    .status(200)
+    .json({ message: "Car deleted successfully.", car: deletedCar });
+};
+
+export const getCarById = async (req, res) => {
+  const { carId } = req.params;
+
+  // Find the car by ID
+  const car = await Car.findById(carId);
+
+  if (!car) {
+    return res.status(404).json({ message: "Car not found." });
+  }
+
+  res.status(200).json({ car });
+};

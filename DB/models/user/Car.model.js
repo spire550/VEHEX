@@ -12,15 +12,15 @@ const carSchema = new mongoose.Schema(
       agency: { type: String },
       warranty: { type: Boolean },
     },
-    mileage: { type: Number, required: true }, // New mileage field
+    mileage: { type: Number}, // New mileage field
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     logo: {
-      url: { type: String, required: true },
-      publicId: { type: String, required: true },
+      url: { type: String },
+      publicId: { type: String },
     },
   },
   {
