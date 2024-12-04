@@ -8,7 +8,8 @@ import categoryRouter from "./src/module/category/category.router.js";
 import cartRouter from "./src/module/cart/cart.router.js";
 import packageRouter from "./src/module/package/package.router.js";
 import orderRouter from "./src/module/order/order.router.js";
-import bodyParser from 'body-parser';
+import messageRouter from "./src/module/message/message.router.js";
+import bodyParser from "body-parser";
 
 dotenv.config();
 const app = express();
@@ -36,6 +37,7 @@ app.use("/category", categoryRouter);
 app.use("/cart", cartRouter);
 app.use("/package", packageRouter);
 app.use("/order", orderRouter);
+app.use("/message", messageRouter);
 
 app.use((err, req, res, next) => {
   return res.json({ message: "Error", err: err.message, stack: err.stack });

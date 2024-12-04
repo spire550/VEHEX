@@ -76,7 +76,7 @@ export const createOrderFromCart = async (req, res, next) => {
   
     // Generate Moyasar payment request for credit card
     const paymentPayload = {
-      amount: totalPrice * 100, // Amount in halalas
+      amount: totalPrice * 100, // Amount in halalas*100
       currency: "SAR",
       source: {
         type: "creditcard",
@@ -91,7 +91,6 @@ export const createOrderFromCart = async (req, res, next) => {
     };
   
     try {
-      // Send request to Moyasar API
       const response = await axios.post(
         "https://api.moyasar.com/v1/payments",
         paymentPayload,
