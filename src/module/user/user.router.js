@@ -15,4 +15,5 @@ router.delete(
   auth,
   asyncHandler(userController.deleteUser)
 );
+router.get("/allUsers", asyncHandler(userController.getAllUsers));
 export default router;

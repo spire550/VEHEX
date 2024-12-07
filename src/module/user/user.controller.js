@@ -315,3 +315,14 @@ export const deleteUser = async (req, res, next) => {
     user: deletedUser,
   });
 };
+export const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+
+    return users.length
+      ? res.json({ success: true, users })
+      : res.json({ success: false, message: "no users" });
+  } catch (error) {
+    return res.json({ success: false, err: error.message });
+  }
+};
