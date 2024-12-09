@@ -100,130 +100,139 @@ export const viewCart = async (req, res, next) => {
 };
 
 export const updateCartItem = async (req, res, next) => {
-  const { productId, packageId, quantity } = req.body;
-  const userId = req.user._id;
+  try {
+    const { productId, packageId, quantity } = req.body;
+    const userId = req.user._id;
 
-  if (quantity <= 0) {
-    return next(new Error("Quantity must be greater than zero."));
-  }
-
-  // Find the user's cart
-  const cart = await Cart.findOne({ userId });
-  if (!cart) {
-    return next(new Error("Cart not found."));
-  }
-
-  if (productId) {
-    // Case: Update regular product in cart
-    const itemIndex = cart.items.findIndex(
-      (item) => item.productId.toString() === productId
-    );
-
-    if (itemIndex === -1) {
-      return next(new Error("Product not found in cart."));
+    if (quantity <= 0) {
+      return res.status(400).json({ message: "Quantity must be greater than zero." });
     }
 
-    // Update the quantity for the product
-    cart.items[itemIndex].quantity = quantity;
-  } else if (packageId) {
-    // Case: Update products in a package
-    const packageToUpdate = await Package.findById(packageId).populate(
-      "products"
-    );
-    if (!packageToUpdate) {
-      return next(new Error("Package not found."));
+    // Find the user's cart
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found." });
     }
 
-    // Loop through all products in the package and update their quantities
-    for (let product of packageToUpdate.products) {
+    if (productId) {
+      // Case: Update regular product in cart
       const itemIndex = cart.items.findIndex(
-        (item) => item.productId.toString() === product._id.toString()
+        (item) => item.productId?.toString() === productId
       );
 
       if (itemIndex === -1) {
-        return next(new Error(`Product ${product.name} not found in cart.`));
+        return res.status(404).json({ message: "Product not found in cart." });
       }
 
-      // Update the quantity for the product in the package
+      // Update the quantity for the product
       cart.items[itemIndex].quantity = quantity;
-    }
-  } else {
-    return next(new Error("Please provide either a productId or packageId."));
-  }
-
-  // Recalculate total price based on updated cart items
-  cart.totalPrice = cart.items.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
-
-  await cart.save();
-  res.status(200).json({
-    message: "Cart updated successfully.",
-    cart,
-  });
-};
-
-export const removeFromCart = async (req, res, next) => {
-  const { productId, packageId } = req.body;
-  const userId = req.user._id;
-
-  // Find the user's cart
-  const cart = await Cart.findOne({ userId });
-  if (!cart) {
-    return next(new Error("Cart not found."));
-  }
-
-  // If removing a regular product
-  if (productId) {
-    const itemIndex = cart.items.findIndex(
-      (item) => item.productId.toString() === productId
-    );
-
-    if (itemIndex === -1) {
-      return next(new Error("Product not found in cart."));
-    }
-
-    // Remove the product from the cart
-    cart.items.splice(itemIndex, 1);
-  }
-
-  // If removing a package, remove each product within the package
-  if (packageId) {
-    const packageToRemove = await Package.findById(packageId).populate(
-      "products"
-    );
-    if (!packageToRemove) {
-      return next(new Error("Package not found."));
-    }
-
-    // Loop through all products in the package and remove them from the cart
-    for (let product of packageToRemove.products) {
+    } else if (packageId) {
+      // Case: Update package in cart
       const itemIndex = cart.items.findIndex(
-        (item) => item.productId.toString() === product._id.toString()
+        (item) => item.packageId?.toString() === packageId
       );
 
       if (itemIndex === -1) {
-        return next(new Error(`Product ${product.name} not found in cart.`));
+        return res.status(404).json({ message: "Package not found in cart." });
+      }
+
+      // Update the quantity for the package
+      cart.items[itemIndex].quantity = quantity;
+    } else {
+      return res.status(400).json({ message: "Please provide either a productId or packageId." });
+    }
+
+    // Recalculate total price based on updated cart items
+    cart.totalPrice = cart.items.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+
+    await cart.save();
+    res.status(200).json({
+      message: "Cart updated successfully.",
+      cart,
+    });
+  } catch (error) {
+    next(error); // Pass the error to the global error handler
+  }
+};
+
+
+export const removeFromCart = async (req, res, next) => {
+  try {
+    const { productId, packageId } = req.body;
+    const userId = req.user._id;
+
+    // Find the user's cart
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found." });
+    }
+
+    if (productId) {
+      // Case: Remove a regular product from the cart
+      const itemIndex = cart.items.findIndex(
+        (item) => item.productId?.toString() === productId
+      );
+
+      if (itemIndex === -1) {
+        return res.status(404).json({ message: "Product not found in cart." });
       }
 
       // Remove the product from the cart
       cart.items.splice(itemIndex, 1);
+    } else if (packageId) {
+      // Case: Remove a package from the cart
+      const itemIndex = cart.items.findIndex(
+        (item) => item.packageId?.toString() === packageId
+      );
+
+      if (itemIndex !== -1) {
+        // Remove the package from the cart
+        cart.items.splice(itemIndex, 1);
+      } else {
+        // Handle package added as individual products
+        const packageToRemove = await Package.findById(packageId).populate(
+          "products"
+        );
+
+        if (!packageToRemove) {
+          return res.status(404).json({ message: "Package not found." });
+        }
+
+        // Loop through all products in the package and remove them from the cart
+        for (let product of packageToRemove.products) {
+          const productIndex = cart.items.findIndex(
+            (item) => item.productId?.toString() === product._id.toString()
+          );
+
+          if (productIndex !== -1) {
+            cart.items.splice(productIndex, 1);
+          }
+        }
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Please provide either a productId or packageId." });
     }
+
+    // Recalculate total price after removal
+    cart.totalPrice = cart.items.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+
+    await cart.save();
+
+    res.status(200).json({
+      message: "Item(s) removed from cart successfully.",
+      cart,
+    });
+  } catch (error) {
+    next(error); // Pass the error to the global error handler
   }
-
-  // Recalculate total price after removal
-  cart.totalPrice = cart.items.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
-
-  await cart.save();
-
-  res.status(200).json({
-    message: "Item(s) removed from cart successfully.",
-    cart,
-  });
 };
 
 export const getCartWithTotal = async (req, res, next) => {
