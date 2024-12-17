@@ -25,6 +25,10 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product", // Reference to the Product model
         },
+        packageId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Package", // Reference to the Package model
+        },
         quantity: {
           type: Number,
           required: true,
