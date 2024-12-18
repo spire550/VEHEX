@@ -49,4 +49,9 @@ router.delete(
   auth,
   asyncHandler(carController.deleteCarBrand)
 );
+router.post(
+  "/registerCarwithBrand",
+  auth,
+  asyncHandler(carController.registerCarwithBrand)
+);
 export default router;
