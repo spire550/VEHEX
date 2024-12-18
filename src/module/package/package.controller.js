@@ -8,19 +8,27 @@ export const createPackage = async (req, res, next) => {
 
   // Ensure the user is an admin
   if (!req.user || req.user.role !== "admin") {
-    return res
-      .status(403)
-      .json({ message: "You are not authorized to create packages." });
-  }
-  if (!req.file) {
-    return next({ cause: 400, message: "Logo image is required" });
+    return next({
+      cause: 403,
+      message: "You are not authorized to create packages.",
+    });
   }
 
-  // Upload the logo to Cloudinary
-  const { secure_url: logoUrl, public_id: logoPublicId } =
-    await cloudinaryConnection().uploader.upload(req.file.path, {
-      folder: `packages`,
-    });
+  // Ensure at least one image is uploaded
+  if (!req.files || req.files.length === 0) {
+    return next({ cause: 400, message: "At least one image is required." });
+  }
+
+  // Upload images to Cloudinary
+  const images = await Promise.all(
+    req.files.map(async (file) => {
+      const { secure_url: url, public_id: publicId } =
+        await cloudinaryConnection().uploader.upload(file.path, {
+          folder: "packages",
+        });
+      return { url, publicId };
+    })
+  );
 
   // Validate required fields
   if (
@@ -31,18 +39,20 @@ export const createPackage = async (req, res, next) => {
     !price ||
     !mileage
   ) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Invalid data. Name, productIds, price, and mileage are required.",
-      });
+    return next({
+      cause: 400,
+      message:
+        "Invalid data. Name, productIds, price, and mileage are required.",
+    });
   }
 
   // Check if the provided products exist
   const products = await Product.find({ _id: { $in: productIds } });
   if (products.length !== productIds.length) {
-    return res.status(400).json({ message: "Some products were not found." });
+    return next({
+      cause: 400,
+      message: "Some products were not found.",
+    });
   }
 
   // Create the package
@@ -50,9 +60,9 @@ export const createPackage = async (req, res, next) => {
     name,
     description,
     products: productIds,
-    price, // Save the provided price
+    price,
     mileage,
-    logo: { url: logoUrl, publicId: logoPublicId }, // Add logo details if needed
+    images, // Save image details
   });
 
   res.status(201).json({
@@ -71,57 +81,64 @@ export const getPackages = async (req, res) => {
   res.status(200).json({ packages });
 };
 
-export const updatePackage = async (req, res) => {
+  export const updatePackage = async (req, res, next) => {
     const { packageId } = req.params;
     const { name, price, products, description, mileage } = req.body;
   
     // Ensure the user is an admin
     if (!req.user || req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to update packages." });
+      return next({
+        cause: 403,
+        message: "You are not authorized to update packages.",
+      });
     }
   
+    // Find the package to update
     const packageToUpdate = await Package.findById(packageId);
     if (!packageToUpdate) {
-      return res.status(404).json({ message: "Package not found." });
+      return next({ cause: 404, message: "Package not found." });
     }
   
-    // If a new logo file is provided
-    if (req.file) {
-      // Remove the old logo from Cloudinary if it exists
-      if (packageToUpdate.logo && packageToUpdate.logo.publicId) {
-        await cloudinaryConnection().uploader.destroy(packageToUpdate.logo.publicId);
+    // Handle multiple image uploads if provided
+    if (req.files && req.files.length > 0) {
+      // Remove old images from Cloudinary if they exist
+      if (packageToUpdate.images && packageToUpdate.images.length > 0) {
+        for (const image of packageToUpdate.images) {
+          if (image.publicId) {
+            await cloudinaryConnection().uploader.destroy(image.publicId);
+          }
+        }
       }
   
-      // Upload the new logo to Cloudinary
-      const { secure_url: newLogoUrl, public_id: newLogoPublicId } =
-        await cloudinaryConnection().uploader.upload(req.file.path, {
-          folder: `packages`,
-        });
+      // Upload new images to Cloudinary
+      const newImages = await Promise.all(
+        req.files.map(async (file) => {
+          const { secure_url: url, public_id: publicId } = await cloudinaryConnection().uploader.upload(file.path, {
+            folder: "packages",
+          });
+          return { url, publicId };
+        })
+      );
   
-      // Update logo details
-      packageToUpdate.logo = {
-        url: newLogoUrl,
-        publicId: newLogoPublicId,
-      };
+      // Update images
+      packageToUpdate.images = newImages;
     }
   
     // Update other fields if provided
     if (name) {
-      packageToUpdate.name = name; // Update package name
+      packageToUpdate.name = name;
     }
     if (price) {
-      packageToUpdate.price = price; // Update package price
+      packageToUpdate.price = price;
     }
     if (products && Array.isArray(products)) {
-      packageToUpdate.products = products; // Update associated products
+      packageToUpdate.products = products;
     }
     if (description) {
-      packageToUpdate.description = description; // Update description
+      packageToUpdate.description = description;
     }
     if (mileage) {
-      packageToUpdate.mileage = mileage; // Update mileage
+      packageToUpdate.mileage = mileage;
     }
   
     // Save the updated package
@@ -242,14 +259,14 @@ export const assignPackageToCar = async (req, res) => {
 };
 
 export const getPackageById = async (req, res) => {
-    const { packageId } = req.params;
-  
-    // Find the car by ID
-    const packagee = await Package.findById(packageId);
-  
-    if (!packagee) {
-      return res.status(404).json({ message: "package not found." });
-    }
-  
-    res.status(200).json({ packagee });
-  };
+  const { packageId } = req.params;
+
+  // Find the car by ID
+  const packagee = await Package.findById(packageId);
+
+  if (!packagee) {
+    return res.status(404).json({ message: "package not found." });
+  }
+
+  res.status(200).json({ packagee });
+};

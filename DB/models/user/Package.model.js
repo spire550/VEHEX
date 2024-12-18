@@ -20,10 +20,16 @@ const packageSchema = new mongoose.Schema(
         ref: "Product",
       },
     ],
-    logo: {
+    /* logo: {
       url: { type: String, required: true },
       publicId: { type: String, required: true },
-    },
+    }, */
+    images: [
+      {
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+      },
+    ],
     description: {
       type: String,
     },

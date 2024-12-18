@@ -1,21 +1,27 @@
 import Car from "../../../DB/models/user/Car.model.js";
 import cloudinaryConnection from "../utils/cloudinary.js";
+import CarBrand from "./../../../DB/models/user/carBrand.model.js";
+import { systemRoles } from "../utils/system-roles.js";
 
 export const registerCar = async (req, res, next) => {
   const { engineNumber, model, year, agency, warranty, mileage } = req.body;
 
   // Get the userId from the authenticated user
   const userId = req.user._id;
-  // Ensure a file is uploaded
-  if (!req.file) {
-    return next({ cause: 400, message: "Logo image is required" });
-  }
 
-  // Upload the logo to Cloudinary
-  const { secure_url: logoUrl, public_id: logoPublicId } =
-    await cloudinaryConnection().uploader.upload(req.file.path, {
-      folder: `cars`,
-    });
+  let logoUrl, logoPublicId;
+
+  // Upload the logo to Cloudinary if provided
+  if (req.file) {
+    const uploadResult = await cloudinaryConnection().uploader.upload(
+      req.file.path,
+      {
+        folder: `cars`,
+      }
+    );
+    logoUrl = uploadResult.secure_url;
+    logoPublicId = uploadResult.public_id;
+  }
 
   if (engineNumber) {
     // Check if the current user already has a car with this engine number
@@ -29,9 +35,9 @@ export const registerCar = async (req, res, next) => {
     // Create a car with the engine number and mileage
     const newCar = await Car.create({
       engineNumber,
-      mileage, // Add mileage here
+      mileage,
       userId,
-      logo: { url: logoUrl, publicId: logoPublicId }, // Add logo details if needed
+      logo: logoUrl ? { url: logoUrl, publicId: logoPublicId } : undefined, // Add logo details if provided
     });
 
     return res.status(201).json({
@@ -45,9 +51,9 @@ export const registerCar = async (req, res, next) => {
     // Create a car with the car details and mileage
     const newCar = await Car.create({
       carDetails: { model, year, agency, warranty },
-      mileage, // Add mileage here
+      mileage,
       userId,
-      logo: { url: logoUrl, publicId: logoPublicId }, // Add logo details
+      logo: logoUrl ? { url: logoUrl, publicId: logoPublicId } : undefined, // Add logo details if provided
     });
 
     return res.status(201).json({
@@ -59,6 +65,7 @@ export const registerCar = async (req, res, next) => {
   // If neither engineNumber nor carDetails are provided
   return next(new Error("Either engine number or car details are required."));
 };
+
 // Register car by car details
 /* export const registerCarByCarDetails = async (req, res) => {
   const { model, year, agency, warranty } = req.body;
@@ -174,12 +181,10 @@ export const updateCar = async (req, res, next) => {
     if (updates.carDetails) {
       if (isCarRegisteredWithEngineNumber) {
         // If the car already has an engine number, don't allow updating car details
-        return res
-          .status(400)
-          .json({
-            message:
-              "You cannot update car details for a car registered with engine number.",
-          });
+        return res.status(400).json({
+          message:
+            "You cannot update car details for a car registered with engine number.",
+        });
       }
 
       // If no engine number exists, update car details (model, year, etc.)
@@ -291,11 +296,9 @@ export const deleteCarAdmin = async (req, res) => {
   // Check if the logged-in user is an admin (assuming you have this logic in your auth middleware)
   const user = req.user; // Assuming user is added to the request after authentication
   if (!user || user.role !== "admin") {
-    return res
-      .status(403)
-      .json({
-        message: "Forbidden: You do not have permission to delete this car.",
-      });
+    return res.status(403).json({
+      message: "Forbidden: You do not have permission to delete this car.",
+    });
   }
 
   // Find and delete the car
@@ -322,3 +325,66 @@ export const getCarById = async (req, res) => {
 
   res.status(200).json({ car });
 };
+
+export const addCarBrand = async (req, res,next) => {
+  const { carBrand } = req.body;
+ if (req.user.role !== systemRoles.ADMIN)
+     return next({
+       cause: 403,
+       message: "You are not authorized ",
+     });
+  if (!carBrand || !req.file) {
+    return next(new Error("Car brand and logo are required.")); // Pass the error to the global error handler
+  }
+
+  // Upload to Cloudinary
+  const { secure_url: logoUrl, public_id: logoPublicId } =
+    await cloudinaryConnection().uploader.upload(req.file.path, {
+      folder: "carBrandLogo",
+    });
+
+  // Save to the database
+  const newCarBrand = await CarBrand.create({
+    carBrand,
+    carBrandLogo: {
+      url: logoUrl,
+      publicId: logoPublicId,
+    },
+  });
+
+  res
+    .status(201)
+    .json({ message: "Car brand added successfully!", data: newCarBrand });
+};
+
+export const getAllcarBrands = async (req, res) => {
+  const cars = await CarBrand.find(); // Fetch all cars from the database
+  res.status(200).json({
+    message: "Car Brands retrieved successfully.",
+    cars,
+  });
+};
+
+export const deleteCarBrand=async(req,res)=>{
+  const { id } = req.params;
+  if (req.user.role !== systemRoles.ADMIN)
+    return next({
+      cause: 403,
+      message: "You are not authorized ",
+    });
+  // Find the car brand by ID
+  const carBrand = await CarBrand.findById(id);
+  if (!carBrand) {
+    return next(new Error("Car brand not found."));
+  }
+
+  // Delete the logo from Cloudinary if it exists
+  if (carBrand.carBrandLogo?.publicId) {
+    await cloudinaryConnection().uploader.destroy(carBrand.carBrandLogo.publicId);
+  }
+
+  // Delete the car brand from the database
+  await CarBrand.findByIdAndDelete(id);
+
+  res.status(200).json({ message: "Car brand deleted successfully." });
+}

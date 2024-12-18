@@ -10,15 +10,17 @@ const router = express.Router();
 router.post(
   "/createPackage",
   auth,
-  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
+  uploadFileCloud({ extensions: allowedExtensions.image }).array("logo",4),
   asyncHandler(packageController.createPackage)
 );
 router.get("/allPackages", asyncHandler(packageController.getPackages));
 router.put(
   "/updatePackage/:packageId",
   auth,
-  uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
-  asyncHandler(packageController.updatePackage)
+  uploadFileCloud({ extensions: allowedExtensions.image }).array(
+    "logo",
+    4
+  ),  asyncHandler(packageController.updatePackage)
 );
 router.delete(
   "/deletePackage/:packageId",
