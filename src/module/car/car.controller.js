@@ -66,6 +66,76 @@ export const registerCar = async (req, res, next) => {
   return next(new Error("Either engine number or car details are required."));
 };
 
+export const registerCarwithBrand = async (req, res, next) => {
+  const { engineNumber, carBrandName, year, agency, warranty, mileage } =
+    req.body;
+
+  // Get the userId from the authenticated user
+  const userId = req.user._id;
+
+  let logoUrl, logoPublicId;
+
+  // Ensure carBrandName is provided to get the logo
+  if (carBrandName) {
+    // Find the car brand by its name
+    const carBrand = await CarBrand.findOne({ carBrand: carBrandName });
+    if (!carBrand) {
+      return next(new Error("Car brand not found."));
+    }
+
+    // Fetch the logo from the associated car brand
+    logoUrl = carBrand.carBrandLogo.url;
+    logoPublicId = carBrand.carBrandLogo.publicId;
+  } else {
+    return next(new Error("Car brand is required."));
+  }
+
+  // If engineNumber is provided, check for an existing car with this engine number
+  if (engineNumber) {
+    const existingCar = await Car.findOne({ engineNumber, userId });
+    if (existingCar) {
+      return next(
+        new Error("You already have a car registered with this engine number.")
+      );
+    }
+
+    // Create a car with the engine number, mileage, and carBrandName as model
+    const newCar = await Car.create({
+      engineNumber,
+      mileage,
+      userId,
+      model: carBrandName, // Use carBrandName as the model
+      logo: { url: logoUrl, publicId: logoPublicId }, // Use the car brand logo
+    });
+
+    return res.status(201).json({
+      message: "Car registered successfully with engine number.",
+      car: newCar,
+    });
+  }
+
+  // If engineNumber is not provided, validate car details based on carBrandName
+  if (carBrandName && year && agency) {
+    // Create a car with the car details and mileage, using carBrandName as the model
+    const newCar = await Car.create({
+      carDetails: { model: carBrandName, year, agency, warranty }, // Use carBrandName as model
+      mileage,
+      userId,
+      logo: { url: logoUrl, publicId: logoPublicId }, // Use the car brand logo
+    });
+
+    return res.status(201).json({
+      message: "Car registered successfully with car brand as model.",
+      car: newCar,
+    });
+  }
+
+  // If neither engineNumber nor car details are provided
+  return next(
+    new Error("Either engine number or car brand details are required.")
+  );
+};
+
 // Register car by car details
 /* export const registerCarByCarDetails = async (req, res) => {
   const { model, year, agency, warranty } = req.body;
@@ -326,13 +396,13 @@ export const getCarById = async (req, res) => {
   res.status(200).json({ car });
 };
 
-export const addCarBrand = async (req, res,next) => {
+export const addCarBrand = async (req, res, next) => {
   const { carBrand } = req.body;
- if (req.user.role !== systemRoles.ADMIN)
-     return next({
-       cause: 403,
-       message: "You are not authorized ",
-     });
+  if (req.user.role !== systemRoles.ADMIN)
+    return next({
+      cause: 403,
+      message: "You are not authorized ",
+    });
   if (!carBrand || !req.file) {
     return next(new Error("Car brand and logo are required.")); // Pass the error to the global error handler
   }
@@ -365,7 +435,7 @@ export const getAllcarBrands = async (req, res) => {
   });
 };
 
-export const deleteCarBrand=async(req,res)=>{
+export const deleteCarBrand = async (req, res) => {
   const { id } = req.params;
   if (req.user.role !== systemRoles.ADMIN)
     return next({
@@ -380,11 +450,13 @@ export const deleteCarBrand=async(req,res)=>{
 
   // Delete the logo from Cloudinary if it exists
   if (carBrand.carBrandLogo?.publicId) {
-    await cloudinaryConnection().uploader.destroy(carBrand.carBrandLogo.publicId);
+    await cloudinaryConnection().uploader.destroy(
+      carBrand.carBrandLogo.publicId
+    );
   }
 
   // Delete the car brand from the database
   await CarBrand.findByIdAndDelete(id);
 
   res.status(200).json({ message: "Car brand deleted successfully." });
-}
+};
