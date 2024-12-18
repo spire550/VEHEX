@@ -22,14 +22,7 @@ const carSchema = new mongoose.Schema(
       url: { type: String },
       publicId: { type: String },
     },
-    carBrand:{
-      type:String,
-      required:true,
-    },
-    carBrandLogo:{
-      url: { type: String },
-      publicId: { type: String },
-    }
+   
   },
   {
     timestamps: true,
