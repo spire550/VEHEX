@@ -20,7 +20,7 @@ router.post(
 ); */
 router.get("/userCars", auth, asyncHandler(carController.getAllUserCars));
 router.put(
-  "/updateU00serCar/:carId",
+  "/updateUserCar/:carId",
   auth,
   uploadFileCloud({ extensions: allowedExtensions.image }).single("logo"),
   asyncHandler(carController.updateCar)
