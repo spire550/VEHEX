@@ -6,6 +6,7 @@ import auth from "../../middleware/auth.js";
 const router = Router();
 
 router.post("/register", asyncHandler(userController.registerUser));
+router.post("/registerAdmin", asyncHandler(userController.registerAdmin));
 router.post("/login", asyncHandler(userController.loginUser));
 router.put("/logout", asyncHandler(userController.logout));
 router.patch("/forget_code", asyncHandler(userController.sendForgetCode));
@@ -15,5 +16,11 @@ router.delete(
   auth,
   asyncHandler(userController.deleteUser)
 );
+router.put(
+  "/changePassword",
+  auth,
+  asyncHandler(userController.changePassword)
+);
+router.put("/updateUser", auth, asyncHandler(userController.updateCurrentUser));
 router.get("/allUsers", asyncHandler(userController.getAllUsers));
 export default router;

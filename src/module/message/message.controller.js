@@ -31,7 +31,7 @@ export const getAllMessages = async (req, res, next) => {
 
 export const deleteMessage = async (req, res, next) => {
   const { id } = req.params;
-  if (req.user.role !== systemRoles.SUPER_ADMIN)
+  if (req.user.role !== systemRoles.ADMIN)
     return next({
       cause: 403,
       message: "You are not authorized ",

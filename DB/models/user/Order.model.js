@@ -25,6 +25,7 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product", // Reference to the Product model
         },
+      
         quantity: {
           type: Number,
           required: true,
@@ -39,17 +40,7 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    paymentMethod: {
-      type: String,
-      enum: ["creditcard"], // Only allow "creditcard" as the payment method
-      required: true,
-    },
-    invoiceId: String,
-    paymentStatus: {
-      type: String,
-      enum: ["pending", "paid", "failed", "initiated"],
-      default: "pending",
-    },
+   
     shippingStatus: {
       type: String,
       enum: ["on the way", "delivered", "canceled", "pending", "processing"],

@@ -10,27 +10,17 @@ const router = express.Router();
 router.post(
   "/addProduct",
   auth,
-  uploadFileCloud({ extensions: allowedExtensions.image }).array(
-    "productImage",
-    4
-  ),
+  uploadFileCloud({ extensions: allowedExtensions.image }).fields([
+    { name: "images", maxCount: 4 },
+    { name: "video", maxCount: 1 },
+  ]),
   asyncHandler(productsController.addProduct)
 );
 
 // Public route to get products
-router.get("/", asyncHandler(productsController.getProducts));
 router.get("/getAllProducts", asyncHandler(productsController.getAllProducts));
 
-router.get(
-  "/loggedUserProducts",
-  auth,
-  asyncHandler(productsController.getProductsForUser)
-);
-router.get(
-  "/selectedCar/:carId",
-  auth,
-  asyncHandler(productsController.getProductsForSelectedCar)
-);
+
 router.get(
   "/prouctsByCategory/:categoryId",
   asyncHandler(productsController.getProductsByCategory)
@@ -41,8 +31,10 @@ router.delete(
   auth,
   asyncHandler(productsController.deleteProduct)
 );
-router.get(
-  "/getCarById/:productId",
-  asyncHandler(productsController.getProductById)
-);
+router.get('/getAllProducts',asyncHandler(productsController.getAllProducts))
+router.put('/products/:productId',auth,
+  uploadFileCloud({ extensions: allowedExtensions.image }).fields([
+    { name: "images", maxCount: 4 },
+    { name: "video", maxCount: 1 },
+  ]),asyncHandler(productsController.updateProduct)); 
 export default router;

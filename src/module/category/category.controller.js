@@ -3,7 +3,7 @@ import Product from "../../../DB/models/user/Product.model.js";
 
 // Create a new category
 export const createCategory = async (req, res) => {
-  const { name, description } = req.body;
+  const { name,description } = req.body;
 
   if (!req.user || req.user.role !== "admin") {
     return next(new Error("You are not authorized to delete products."));

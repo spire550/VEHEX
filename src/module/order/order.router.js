@@ -10,9 +10,8 @@ router.post(
   auth,
   asyncHandler(orderController.createOrderFromCart)
 );
-router.post(
-  "/api/webhook/moyasar",
-  asyncHandler(orderController.moyasarWebhook)
-);
-
+;
+router.get("/allOrders", asyncHandler(orderController.getAllOrders));
+router.delete("/deleteOrder/:id", auth, asyncHandler(orderController.deleteOrder));
+router.put("/updateOreder/:id", auth, asyncHandler(orderController.updateOrder));
 export default router;

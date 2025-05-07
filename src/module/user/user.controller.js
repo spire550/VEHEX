@@ -1,4 +1,3 @@
-// controllers/authController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "./../../../DB/models/user/User.model.js";
@@ -7,7 +6,7 @@ import tokenModel from "../../../DB/models/token/Token.model.js";
 import sendEmailService from "../utils/sendEmails.js";
 
 export const registerUser = async (req, res, next) => {
-  const { name, email, mobile, password } = req.body;
+  const { fname, lname, email, mobile, password } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -19,7 +18,8 @@ export const registerUser = async (req, res, next) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = new User({
-    name,
+    fname,
+    lname,
     email,
     mobile,
     password: hashedPassword,
@@ -293,7 +293,6 @@ export const resetPassword = async (req, res, next) => {
   return res.json({ success: true, message: "Try to login now" });
 };
 
-
 export const deleteUser = async (req, res, next) => {
   const { userId } = req.params;
 
@@ -325,4 +324,102 @@ export const getAllUsers = async (req, res, next) => {
   } catch (error) {
     return res.json({ success: false, err: error.message });
   }
+};
+export const changePassword = async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const isOldPassword = bcrypt.compareSync(oldPassword, req.user.password);
+
+  if (!isOldPassword) {
+    return next(new Error("invalid old password"));
+  }
+
+  const hashedPassword = bcrypt.hashSync(newPassword, 9);
+  req.user.password = hashedPassword;
+  await req.user.save();
+
+  return res.json({ message: "Password Changed Successfully" });
+};
+
+export const updateUser = async (req, res, next) => {
+  const { fname, lname, email, mobile } = req.body;
+  const { id } = req.params;
+  if (email) {
+    const isEmailExisted = await User.findOne({ email });
+    if (isEmailExisted && isEmailExisted._id.toString() !== id)
+      return next(
+        new Error(
+          "This Email is already existed for another user, try another one",
+          { cause: 400 }
+        )
+      );
+
+    req.user.email = email;
+  }
+  req.user.fname = fname;
+  req.user.lname = lname;
+  req.user.mobile = mobile;
+  await req.user.save();
+
+  return res.json({
+    success: true,
+    message: "User Updated Successfully",
+  });
+};
+
+export const updateCurrentUser = async (req, res, next) => {
+  const { fname, lname, email, mobile } = req.body;
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new Error("no user"));
+  }
+  if (email) {
+    const isEmailExisted = await User.findOne({ email });
+    if (isEmailExisted && isEmailExisted._id.toString() !== req.user.id)
+      return next(
+        new Error(
+          "This Email is already existed for another user, try another one",
+          { cause: 400 }
+        )
+      );
+
+    req.user.email = email;
+  }
+
+  req.user.fname = fname;
+  req.user.lname = lname;
+  req.user.mobile = mobile;
+  await req.user.save();
+
+  return res.json({
+    success: true,
+    message: "User Updated Successfully",
+  });
+};
+
+export const registerAdmin = async (req, res, next) => {
+  const { fname, lname, email, mobile, password,role } = req.body;
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res
+      .status(400)
+      .json({ message: "User already exists with this email" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = new User({
+    fname,
+    lname,
+    email,
+    mobile,
+    password: hashedPassword,
+    role
+  });
+
+  await newUser.save();
+
+  res.status(201).json({ message: "User registered successfully" });
 };

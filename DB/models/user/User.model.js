@@ -3,7 +3,12 @@ import { systemRoles } from "../../../src/module/utils/system-roles.js";
 
 const userSchema = new Schema(
   {
-    name: {
+    fname: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lname: {
       type: String,
       required: true,
       trim: true,
@@ -17,8 +22,7 @@ const userSchema = new Schema(
     },
     mobile: {
       type: String,
-      required: true,
-      unique: true,
+     
     },
     password: {
       type: String,
