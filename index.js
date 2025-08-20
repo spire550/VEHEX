@@ -10,11 +10,13 @@ import packageRouter from "./src/module/package/package.router.js";
 import orderRouter from "./src/module/order/order.router.js";
 import messageRouter from "./src/module/message/message.router.js";
 import bodyParser from "body-parser";
-
+import cors from "cors";
 dotenv.config();
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cors());
+
 const whitelist = [];
 
 app.use((req, res, next) => {
@@ -42,6 +44,8 @@ app.use("/message", messageRouter);
 app.use((err, req, res, next) => {
   return res.json({ message: "Error", err: err.message, stack: err.stack });
 });
-await connection();
+(async () => {
+  await connection();
+})();
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
